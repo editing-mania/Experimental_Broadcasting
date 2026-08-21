@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🎧 Now Playing</title>
+<style>
+  :root {
+    --bg: #14121a;
+    --card: #1f1c29;
+    --accent: #ff5da2;
+    --text: #f5f3ff;
+    --sub: #9c94b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: radial-gradient(circle at top, #24203233, var(--bg));
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 1.1rem; color: var(--sub); font-weight: 500; letter-spacing: 0.05em; }
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.8rem; color: var(--sub); margin-bottom: 24px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
+  .dot.on { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+
+  .now-card {
+    width: 100%; max-width: 560px;
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    text-align: center;
+    border: 1px solid #ffffff10;
+  }
+  .now-label { font-size: 0.85rem; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
+  .now-title {
+    font-size: 1.6rem; font-weight: 800; margin: 12px 0 4px;
+    word-break: break-word;
+  }
+  .now-artist { font-size: 1rem; color: var(--sub); }
+  .now-empty { font-size: 1.1rem; color: var(--sub); padding: 20px 0; }
+
+  .history {
+    width: 100%; max-width: 560px; margin-top: 28px;
+  }
+  .history h2 { font-size: 0.9rem; color: var(--sub); margin-bottom: 8px; }
+  .history ul { list-style: none; margin: 0; padding: 0; }
+  .history li {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; border-radius: 12px; margin-bottom: 6px;
+    background: #ffffff08; font-size: 0.9rem;
+  }
+  .history li .t { font-weight: 600; }
+  .history li .a { color: var(--sub); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+  <h1>🎧 現在の曲・再生履歴</h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">接続中...</span></div>
+
+  <div class="now-card">
+    <div class="now-label">NOW PLAYING</div>
+    <div id="nowPlayingBlock">
+      <div class="now-empty">（放送停止中・曲なし）</div>
+    </div>
+  </div>
+
+  <div class="history">
+    <h2>📋 曲目次（クリックで詳細なし・新しい順）</h2>
+    <ul id="historyList"></ul>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const dot = document.getElementById('dot');
+    const statusText = document.getElementById('statusText');
+    const nowBlock = document.getElementById('nowPlayingBlock');
+    const historyList = document.getElementById('historyList');
+
+    function render(state) {
+      dot.classList.toggle('on', state.connectedToOBS);
+      statusText.textContent = state.connectedToOBS ? 'OBSに接続中' : 'OBSに未接続';
+
+      if (state.nowPlaying) {
+        const { title, artist } = state.nowPlaying;
+        nowBlock.innerHTML = `
+          <div class="now-title">${escapeHtml(title)}</div>
+          ${artist ? `<div class="now-artist">${escapeHtml(artist)}</div>` : ''}
+        `;
+      } else {
+        nowBlock.innerHTML = `<div class="now-empty">（放送停止中・曲なし）</div>`;
+      }
+
+      historyList.innerHTML = state.history
+        .slice(0, 50)
+        .map(
+          (t) => `<li><span class="t">${escapeHtml(t.title)}</span><span class="a">${escapeHtml(t.artist || '')}</span></li>`
+        )
+        .join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    socket.on('state', render);
+  </script>
+</body>
+</html>
