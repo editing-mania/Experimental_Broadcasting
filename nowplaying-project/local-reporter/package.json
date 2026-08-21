@@ -1,0 +1,13 @@
+{
+  "name": "nowplaying-local-reporter",
+  "version": "1.0.0",
+  "description": "VLCの再生状況を取得して、公開サーバーに送信するローカルスクリプト",
+  "main": "reporter.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node reporter.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
